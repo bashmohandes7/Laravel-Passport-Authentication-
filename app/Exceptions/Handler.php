@@ -31,7 +31,7 @@ class Handler extends ExceptionHandler
     ];
 
     protected function invalidJson($request, ValidationException $exception) {
-        return $this->responseApi($exception->errors()->first(), $exception->errors(), 422);
+        return $this->responseApi($exception->getMessage(), $exception->errors(), 422);
     }
 
     /**
