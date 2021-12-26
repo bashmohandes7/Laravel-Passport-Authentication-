@@ -19,7 +19,7 @@ class UserRequest extends FormRequest
         return [
             'name' => 'required|string',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string',
+            'password' => 'required|string|min:6',
             'password_confirmation' => 'required|same:password',
             'roles' => 'required'
         ];
@@ -29,7 +29,7 @@ class UserRequest extends FormRequest
         return [
             'name' => 'string',
             'email' => 'email|unique:users,email',
-            'password' => 'string',
+            'password' => 'string|min:6',
             'password_confirmation'=> 'string|same:password',
             'roles' => 'nullable'
         ];
