@@ -30,16 +30,16 @@ Route::middleware(
     Route::post('reset-password',   [ResetController::class, 'reset']);
 });
 
-// Role Crud
 Route::middleware([
     'auth:api',
 ])->group(function (){
     Route::get('logout',         [LogoutController::class,  'logout']);
+    // Role Crud
     Route::get('/roles',         [RoleController::class,    'index']);
     Route::post('/roles',        [RoleController::class,    'store']);
     Route::get('/roles/{id}',    [RoleController::class,    'show']);
-    Route::put('/roles/{id}',    [RoleController::class,   'update']);
-    Route::delete('/roles/{id}', [RoleController::class,   'destroy']);
+    Route::put('/roles/{id}',    [RoleController::class,    'update']);
+    Route::delete('/roles/{id}', [RoleController::class,    'destroy']);
 // Permission index
     Route::get('/permissions',   [PermissionController::class, 'index']);
 });

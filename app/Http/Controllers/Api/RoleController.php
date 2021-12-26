@@ -111,6 +111,6 @@ class RoleController extends Controller
     public function destroy($id)
     {
         Role::where('id', $id)->delete();
-        return $this->ResponseApi(__('messages. role delete'));
+        return $this->ResponseApi(__('messages.role delete'));
     }
 }

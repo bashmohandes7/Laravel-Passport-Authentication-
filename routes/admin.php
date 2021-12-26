@@ -22,5 +22,6 @@ Route::middleware([
             Route::get('/users/{id}',    [UserController::class, 'show']);
             Route::put('/users/{id}',    [UserController::class, 'update']);
             Route::delete('/users/{id}', [UserController::class, 'destroy']);
+            Route::get('/profile',       [UserController::class, 'profile']);
         });
     });

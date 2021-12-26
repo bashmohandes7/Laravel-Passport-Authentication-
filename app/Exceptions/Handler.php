@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use App\Http\Traits\Response;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -32,6 +33,12 @@ class Handler extends ExceptionHandler
 
     protected function invalidJson($request, ValidationException $exception) {
         return $this->responseApi($exception->getMessage(), $exception->errors(), 422);
+    }
+
+    protected function unauthenticated($request, AuthenticationException $exception) {
+        if ($request->expectsJson()) {
+            return $this->responseApi('Unauthenticated', null, 401);
+        }
     }
 
     /**

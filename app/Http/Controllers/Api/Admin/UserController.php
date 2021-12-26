@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use App\Transformers\Users\UserTransformer;
 use Illuminate\Http\Request;
@@ -58,25 +59,19 @@ class UserController extends Controller
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request)
+    public function store(UserRequest $request)
     {
-        $this->validate($request, [
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|same:confirm-password',
-            'roles' => 'required'
+        $user = User::create([
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'password'=> $request->input('password')
         ]);
-
-        $input = $request->all();
-        $input['password'] = Hash::make($input['password']);
-
-        $user = User::create($input);
         $user->assignRole($request->input('roles'));
-        $user = fractal()
+        $fractal = fractal()
             ->item($user)
             ->transformWith(new UserTransformer())
             ->toArray();
-        return $this->ResponseApi(__('messages.user create'), $user);
+        return $this->ResponseApi(__('messages.user create'), $fractal);
     }
 
     /**  Display the specified User with Roles
@@ -101,33 +96,27 @@ class UserController extends Controller
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function update(Request $request, $id)
+    public function update(UserRequest $request, $id)
     {
-        $this->validate($request, [
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'password' => 'same:confirm-password',
-            'roles' => 'required'
-        ]);
 
-        $input = $request->all();
-        if (!empty($input['password'])) {
-            $input['password'] = Hash::make($input['password']);
-        } else {
-            Arr::except($input, array('password'));
-        }
+
         $user = User::find($id);
-        $user->update($input);
+        $user->update([
+            'name' => $request->input('name') ?? $user->name,
+            'email' => $request->input('email') ?? $user->email,
+            'password' => $request->input('password') ?? $user->password,
+            'roles' => $request->input('roles') ?? $user->roles
+        ]);
         DB::table('model_has_roles')->where('model_id', $id)->delete();
 
         $user->assignRole($request->input('roles'));
 
-        $user = fractal()
+        $fractal = fractal()
             ->item($user)
             ->transformWith(new UserTransformer())
             ->includeRoles()
             ->toArray();
-        return $this->ResponseApi(__('messages.user update'), $user);
+        return $this->ResponseApi(__('messages.user update'), $fractal);
     }
 
     /**
@@ -139,9 +128,16 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        $user = User::where('id', $id)->first();
-        $user->token()->revoke();
-        $user->token()->delete();
+        User::where('id', $id)->delete();
         return $this->responseApi('User Deleted Successfully');
+    }
+    public function profile()
+    {
+        $fractal = fractal()
+            ->item(auth()->user())
+            ->transformWith(new UserTransformer())
+            ->includeRoles()
+            ->toArray();
+        return $this->responseApi('', $fractal);
     }
 }

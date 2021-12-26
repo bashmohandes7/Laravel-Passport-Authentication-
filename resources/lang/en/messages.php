@@ -10,5 +10,5 @@ return [
     'user create'               => 'User Created Successfully',
     'user update'               => 'User Updated Successfully',
     'front_success_user_login'  =>  'Success Login',
-    'front_password_error'      =>  'Incorrect Password'
+    'front_password_error'      =>  'Incorrect Password',
 ];

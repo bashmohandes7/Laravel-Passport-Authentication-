@@ -20,9 +20,8 @@ class LoginController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $user = User::firstWhere('email', $request->email);
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            if ($user) {
+        if (Auth::attempt($request->only('email', 'password'))) {
+
                 $user = Auth::user();
                 $user_data = fractal()
                     ->item($user)
@@ -34,9 +33,7 @@ class LoginController extends Controller
                 }
                 $token = $user->createtoken('my-app')->accessToken;
                 return $this->ResponseApi(__('messages.success login'), $user_data, 200, ['token' => $token]);
-            }
         }
-        return $this->ResponseApi(__('messages.admin failed login'), null, 401);
+         $this->ResponseApi(__('messages.admin failed login'), null, 401);
     }
-
 }
