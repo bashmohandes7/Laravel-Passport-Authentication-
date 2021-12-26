@@ -34,6 +34,15 @@ class LoginController extends Controller
                 $token = $user->createtoken('my-app')->accessToken;
                 return $this->ResponseApi(__('messages.success login'), $user_data, 200, ['token' => $token]);
         }
-         $this->ResponseApi(__('messages.admin failed login'), null, 401);
+         return $this->ResponseApi(__('messages.admin failed login'), null, 401);
+    }
+    public function profile()
+    {
+        $fractal = fractal()
+            ->item(auth()->user())
+            ->transformWith(new UserTransformer())
+            ->includeRoles()
+            ->toArray();
+        return $this->responseApi('', $fractal);
     }
 }

@@ -16,6 +16,7 @@ Route::middleware([
 
         Route::group(['middleware' =>        ['auth:api']], function () {
             Route::get('/logout',        [LogoutController::class, 'logout']);
+            Route::get('/profile', [LoginController::class, 'profile']);
             // User Crud
             Route::get('/users',         [UserController::class, 'index']);
             Route::post('/users',        [UserController::class, 'store']);

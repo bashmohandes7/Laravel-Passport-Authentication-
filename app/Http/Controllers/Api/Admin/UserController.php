@@ -80,13 +80,13 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::find($id);
-        $user = fractal()
+        $user = User::findOrFail($id);
+        $fractal = fractal()
             ->item($user)
             ->transformWith(new UserTransformer())
             ->includeRoles()
             ->toArray();
-        return $this->ResponseApi("", $user);
+        return $this->ResponseApi("", $fractal);
     }
 
     /**
@@ -100,7 +100,7 @@ class UserController extends Controller
     {
 
 
-        $user = User::find($id);
+        $user = User::findOrFail($id);
         $user->update([
             'name' => $request->input('name') ?? $user->name,
             'email' => $request->input('email') ?? $user->email,
