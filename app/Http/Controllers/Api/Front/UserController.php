@@ -34,6 +34,10 @@ class UserController extends Controller
             'email' => $email,
             'activation_token' => $code
         ]);
+        if ($request->hasFile('avatar')) {
+            $user->clearMediaCollection('avatars');
+            $user->addMedia($request->avatar)->toMediaCollection('avatars');
+        }
         // send code via email to activate user email
         $token = $user->createToken('my-app')->accessToken; // generate token
         Mail::send('emails.verify_account', ['code'=>$code], function(Message $message) use ($email) {

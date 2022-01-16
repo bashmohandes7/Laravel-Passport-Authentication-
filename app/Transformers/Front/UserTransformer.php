@@ -36,7 +36,8 @@ class UserTransformer extends TransformerAbstract
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'active' => (int)$user->active
+            'active' => (int)$user->active,
+            'profile_image' => $user->getFirstMediaUrl('avatars')  ?? ""
         ];
     }
 }
