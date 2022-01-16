@@ -3,22 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Transformers\Roles\RolesTransformer;
+use App\Transformers\Admin\Roles\RolesTransformer;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
-    /**
-     * RoleController constructor.
-     */
-    public function __construct()
-    {
-        $this->middleware('permission:role-list',   ['only' => ['index']]);
-        $this->middleware('permission:role-create', ['only' => ['store']]);
-        $this->middleware('permission:role-update', ['only' => ['update']]);
-        $this->middleware('permission:role-delete', ['only' => ['destroy']]);
-    }
     /**
      * Get all Roles, roles counts, Search by role name
      * @param Request $request
@@ -26,14 +16,16 @@ class RoleController extends Controller
      */
     public function index(Request $request)
     {
-        $roles=Role::when($request->search ,function($q) use ($request){
-            $q->where('name', 'LIKE', "%{$request->search}%");
+        $skip = ($request->has('skip')) ? $request->skip : 0;
+        // search by role name
+        $roles=Role::when($request->q ,function($q) use ($request){
+            $q->where('name', 'LIKE', "%{$request->q}%");
         });
         $count = $roles->count();
-        $roles = $roles->orderBy('id', 'DESC')->get();
-        $skip = ($request->has('skip')) ? $request->skip : 0;
         if ($request->has('skip')) {
             $roles = $roles->orderBy('id', 'DESC')->skip($skip)->take(10)->get();
+        }else{
+            $roles = $roles->orderBy('id', 'DESC')->get();
         }
         $roles = fractal()
             ->collection($roles)
@@ -52,17 +44,17 @@ class RoleController extends Controller
     {
         $this->validate($request, [
             'name' => 'required|unique:roles,name',
-            'permission' => 'required',
+            'permission' => 'required|array',
+            'permission.*' => 'integer'
         ]);
         $role = Role::create(['name' => $request->input('name')]);
         $role->syncPermissions($request->input('permission'));
-
         $role = fractal()
             ->item($role)
             ->transformWith(new RolesTransformer())
             ->includePermissions()
             ->toArray();
-        return $this->ResponseApi(__('messages.role create'), $role);
+        return $this->ResponseApi('Role Created Successfully', $role);
     }
 
     /**
@@ -73,7 +65,7 @@ class RoleController extends Controller
      */
     public function show($id)
     {
-        $role = Role::find($id);
+        $role = Role::findOrFail($id);
         $role = fractal()
             ->item($role)
             ->transformWith(new RolesTransformer())
@@ -94,23 +86,30 @@ class RoleController extends Controller
     {
         $this->validate($request, [
             'name' => 'required',
-            'permission' => 'required',
+            'permission' => 'sometimes|nullable|array',
+            'permission.*' => 'integer'
         ]);
-        $role = Role::find($id);
+        $role = Role::findOrFail($id);
         $role->name = $request->input('name');
-        $role->save();
         $role->syncPermissions($request->input('permission'));
-        $role = fractal()
+        $role->save();
+        $fractal = fractal()
             ->item($role)
             ->transformWith(new RolesTransformer())
             ->includePermissions()
             ->toArray();
-        return $this->ResponseApi(__('messages.role update'), $role);
+        return $this->ResponseApi('Role Updated Successfully', $fractal);
     }
 
+    /**
+     * Check if that role is exists and delete it
+     * @param $id
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
+     */
     public function destroy($id)
     {
-        Role::where('id', $id)->delete();
-        return $this->ResponseApi(__('messages.role delete'));
+        $role = Role::findOrFail($id);
+        $role->delete();
+        return $this->ResponseApi('Role Deleted Successfully');
     }
 }
