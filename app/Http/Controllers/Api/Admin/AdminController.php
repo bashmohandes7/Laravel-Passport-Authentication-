@@ -7,10 +7,6 @@ use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use App\Transformers\Users\UserTransformer;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -26,27 +22,25 @@ class UserController extends Controller
     }
 
     /**
-     * Get All Users, users count, users roles, users Permissions
      * @param Request $request
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
+     *  Get All Users, users count, users roles, users Permissions
      */
     public function index(Request $request)
     {
-        $users = User::when($request->search, function ($q) use ($request) {
-            $q->where('email', 'LIKE', "%{$request->search}%")
-                ->orWhere('name', 'LIKE', "%{$request->search}%");
+
+        $skip = $request->skip ?? 0;
+
+        $users = User::when($request->q, function ($q) use ($request) {
+            $q->where('email', 'LIKE', "%{$request->q}%")
+                ->orWhere('name', 'LIKE', "%{$request->q}%");
         })->when($request->role, function ($q) use ($request) {
             $q->whereRelation('roles', 'name', $request->role);
         });
         $count = $users->count();
-        $skip = ($request->has('skip')) ? $request->skip : 0;
-        if ($request->has('skip')) {
-            $users = $users->orderBy('created_at', 'DESC')->skip($skip)->take(10)->get();
-        }else{
-            $users = $users->orderBy('created_at', 'DESC')->get();
-        }
+        $users =  $skip !== 0 ? $users->skip($skip)->take(10) : $users;
         $users = fractal()
-            ->collection($users)
+            ->collection($users->orderBy('created_at', 'DESC')->get())
             ->transformWith(new UserTransformer())
             ->includeRoles()
             ->toArray();
@@ -61,12 +55,16 @@ class UserController extends Controller
      */
     public function store(UserRequest $request)
     {
+        // enhance
         $user = User::create([
             'name' => $request->input('name'),
             'email' => $request->input('email'),
-            'password'=> $request->input('password')
+            'password'=> $request->input('password'),
         ]);
-        $user->assignRole($request->input('roles'));
+
+        if ($request->has('roles')) {
+            $user->syncRoles($request->input('roles'));
+        }
         $fractal = fractal()
             ->item($user)
             ->transformWith(new UserTransformer())
@@ -80,9 +78,8 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::findOrFail($id);
         $fractal = fractal()
-            ->item($user)
+            ->item(User::findOrFail($id))
             ->transformWith(new UserTransformer())
             ->includeRoles()
             ->toArray();
@@ -99,17 +96,16 @@ class UserController extends Controller
     public function update(UserRequest $request, $id)
     {
 
-
+        // enhance
         $user = User::findOrFail($id);
         $user->update([
             'name' => $request->input('name') ?? $user->name,
             'email' => $request->input('email') ?? $user->email,
             'password' => $request->input('password') ?? $user->password,
-            'roles' => $request->input('roles') ?? $user->roles
         ]);
-        DB::table('model_has_roles')->where('model_id', $id)->delete();
-
-        $user->assignRole($request->input('roles'));
+        if ($request->has('roles')) {
+            $user->syncRoles($request->input('roles'));
+        }
 
         $fractal = fractal()
             ->item($user)
@@ -128,13 +124,14 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        User::where('id', $id)->delete();
+       $user = User::findOrFail($id);
+       $user->delete();
         return $this->responseApi('User Deleted Successfully');
     }
     public function profile()
     {
         $fractal = fractal()
-            ->item(auth()->user())
+            ->item(auth('api')->user())
             ->transformWith(new UserTransformer())
             ->includeRoles()
             ->toArray();
