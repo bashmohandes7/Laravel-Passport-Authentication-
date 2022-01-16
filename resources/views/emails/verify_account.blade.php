@@ -1,1 +1,1 @@
-{{$token}} is Your Private Code
+{{$code}} is Your Verification Code

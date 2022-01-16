@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Transformers\Permissions;
+namespace App\Transformers\Admin\Permissions;
 
-use App\Transformers\Roles\RolesTransformer;
+use App\Transformers\Admin\Roles\RolesTransformer;
 use League\Fractal\TransformerAbstract;
 use Spatie\Permission\Models\Permission;
 

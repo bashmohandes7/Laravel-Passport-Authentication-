@@ -1,14 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\Front\ForgotController;
-use App\Http\Controllers\Api\Front\LoginController;
-use App\Http\Controllers\Api\Front\LogoutController;
-use App\Http\Controllers\Api\Front\RegisterController;
-use App\Http\Controllers\Api\Front\ResetController;
-use App\Http\Controllers\Api\PermissionController;
-use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\Front\CategoryController;
+use App\Http\Controllers\Api\Front\UserController;
+use App\Http\Controllers\Api\Front\UserProfileController;
 use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -20,27 +15,21 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(
-    'api'
-)->group(function () {
-// Unauthenticated Users
-    Route::post('register',         [RegisterController::class, 'register']);
-    Route::post('login',            [LoginController::class, 'login']);
-    Route::post('forgot-password',  [ForgotController::class, 'forgot']);
-    Route::post('reset-password',   [ResetController::class, 'reset']);
+Route::middleware('api')->group(function (){
+    Route::post('register',         [UserController::class,'register']);
+    Route::post('verify',           [UserController::class,'verify']);
+    Route::post('login',            [UserController::class,'login']);
+    Route::post('forgot-password',  [UserController::class, 'forgot']);
+    Route::post('reset-password',   [UserController::class, 'reset']);
+    Route::group(['middleware' => 'auth:api'], function () {
+        Route::get('/profile',          [UserProfileController::class, 'profile']);
+        Route::get('logout',            [UserProfileController::class, 'logout']);
+        Route::post('change-password',  [UserProfileController::class, 'changePassword']);
+        // Category Crud
+        Route::get('/categories',         [CategoryController::class, 'index']);
+        Route::post('/categories',        [CategoryController::class, 'store']);
+        Route::get('/categories/{id}',    [CategoryController::class, 'show']);
+        Route::put('/categories/{id}',    [CategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+    });
 });
-
-Route::middleware([
-    'auth:api',
-])->group(function (){
-    Route::get('logout',         [LogoutController::class,  'logout']);
-    // Role Crud
-    Route::get('/roles',         [RoleController::class,    'index']);
-    Route::post('/roles',        [RoleController::class,    'store']);
-    Route::get('/roles/{id}',    [RoleController::class,    'show']);
-    Route::put('/roles/{id}',    [RoleController::class,    'update']);
-    Route::delete('/roles/{id}', [RoleController::class,    'destroy']);
-// Permission index
-    Route::get('/permissions',   [PermissionController::class, 'index']);
-});
-

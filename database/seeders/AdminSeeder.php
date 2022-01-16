@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admin;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -19,12 +20,12 @@ class AdminSeeder extends Seeder
     {
         // Create User Admin And Assign All Permissions to you
 
-        $role = Role::firstOrCreate(['name' => 'super-admin', 'guard_name'=>'api']);
+        $role = Role::firstOrCreate(['name' => 'super-admin', 'guard_name'=>'admin']);
         $role->syncPermissions(Permission::all());
         $data['name'] = 'super-admin';
         $data['email'] = 'super_admin@admin.com';
         $data['password'] = Hash::make('123456');
-        $admin = User::firstOrCreate(['email' => $data['email']], $data);
+        $admin = Admin::firstOrCreate($data);
         $admin->assignRole($role);
     }
 }
