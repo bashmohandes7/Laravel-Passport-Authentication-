@@ -4,90 +4,84 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserRequest;
+use App\Models\Admin;
 use App\Models\User;
-use App\Transformers\Users\UserTransformer;
+use App\Transformers\Admin\AdminTransformer;
 use Illuminate\Http\Request;
 
-class UserController extends Controller
+class AdminController extends Controller
 {
-    /**
-     * UserController constructor.
-     */
-    public function __construct()
-    {
-        $this->middleware('permission:user-list', ['only' => ['index']]);
-        $this->middleware('permission:user-create', ['only' => ['store']]);
-        $this->middleware('permission:user-update', ['only' => ['update']]);
-        $this->middleware('permission:user-delete', ['only' => ['destroy']]);
-    }
-
     /**
      * @param Request $request
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
-     *  Get All Users, users count, users roles, users Permissions
+     *  Get All Admins, admins count, admins roles, admins Permissions
      */
     public function index(Request $request)
     {
 
         $skip = $request->skip ?? 0;
-
-        $users = User::when($request->q, function ($q) use ($request) {
+        // Search by admin email or admin name
+        $admins = Admin::when($request->q, function ($q) use ($request) {
             $q->where('email', 'LIKE', "%{$request->q}%")
                 ->orWhere('name', 'LIKE', "%{$request->q}%");
+        // check by admin roles
         })->when($request->role, function ($q) use ($request) {
             $q->whereRelation('roles', 'name', $request->role);
         });
-        $count = $users->count();
-        $users =  $skip !== 0 ? $users->skip($skip)->take(10) : $users;
-        $users = fractal()
-            ->collection($users->orderBy('created_at', 'DESC')->get())
-            ->transformWith(new UserTransformer())
+        $count = $admins->count();
+        $admins =  $skip !== 0 ? $admins->skip($skip)->take(10) : $admins;
+        $admins = fractal()
+            ->collection($admins->orderBy('created_at', 'DESC')->get())
+            ->transformWith(new AdminTransformer())
             ->includeRoles()
+            ->includePermissions()
             ->toArray();
-        return $this->ResponseApi("", $users, 200, ['count' => $count]);
+        return $this->ResponseApi("", $admins, 200, ['count' => $count]);
     }
 
     /**
-     *  Create New User
+     *  Create New Admin
      * @param Request $request
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      * @throws \Illuminate\Validation\ValidationException
      */
     public function store(UserRequest $request)
     {
-        // enhance
-        $user = User::create([
+        $admin = Admin::create([
             'name' => $request->input('name'),
             'email' => $request->input('email'),
             'password'=> $request->input('password'),
         ]);
 
         if ($request->has('roles')) {
-            $user->syncRoles($request->input('roles'));
+            $admin->syncRoles($request->input('roles'));
         }
         $fractal = fractal()
-            ->item($user)
-            ->transformWith(new UserTransformer())
+            ->item($admin)
+            ->transformWith(new AdminTransformer())
+            ->includeRoles()
+            ->includePermissions()
             ->toArray();
-        return $this->ResponseApi(__('messages.user create'), $fractal);
+        return $this->ResponseApi('Admin Created Successfully', $fractal);
     }
 
-    /**  Display the specified User with Roles
+    /**  Display the specified admin with Roles
      * @param $id
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      */
     public function show($id)
     {
         $fractal = fractal()
-            ->item(User::findOrFail($id))
-            ->transformWith(new UserTransformer())
+            ->item(Admin::findOrFail($id))
+            ->transformWith(new AdminTransformer())
             ->includeRoles()
+            ->includePermissions()
             ->toArray();
         return $this->ResponseApi("", $fractal);
     }
 
     /**
-     * Update Specified User
+     * Update Specified Admin
      * @param Request $request
      * @param $id
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
@@ -95,46 +89,35 @@ class UserController extends Controller
      */
     public function update(UserRequest $request, $id)
     {
-
-        // enhance
-        $user = User::findOrFail($id);
-        $user->update([
-            'name' => $request->input('name') ?? $user->name,
-            'email' => $request->input('email') ?? $user->email,
-            'password' => $request->input('password') ?? $user->password,
+        $admin = Admin::findOrFail($id);
+        $admin->update([
+            'name' => $request->input('name') ?? $admin->name,
+            'email' => $request->input('email') ?? $admin->email,
+            'password' => $request->input('password') ?? $admin->password,
         ]);
         if ($request->has('roles')) {
-            $user->syncRoles($request->input('roles'));
+            $admin->syncRoles($request->input('roles'));
         }
-
         $fractal = fractal()
-            ->item($user)
-            ->transformWith(new UserTransformer())
+            ->item($admin)
+            ->transformWith(new AdminTransformer())
             ->includeRoles()
+            ->includePermissions()
             ->toArray();
-        return $this->ResponseApi(__('messages.user update'), $fractal);
+        return $this->ResponseApi('Admin Updated Successfully', $fractal);
     }
 
     /**
-     * Check if user exists first,
-     *  if yes Revoke his token
-     *  delete his token
+     * check admin authenticated
+     * revoke his token and delete it
+     * delete admin from database
      * @param $id
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response
      */
     public function destroy($id)
     {
-       $user = User::findOrFail($id);
-       $user->delete();
-        return $this->responseApi('User Deleted Successfully');
-    }
-    public function profile()
-    {
-        $fractal = fractal()
-            ->item(auth('api')->user())
-            ->transformWith(new UserTransformer())
-            ->includeRoles()
-            ->toArray();
-        return $this->responseApi('', $fractal);
+        $admin = Admin::findOrFail($id);
+        $admin->delete();
+        return $this->responseApi('Admin Deleted Successfully');
     }
 }
